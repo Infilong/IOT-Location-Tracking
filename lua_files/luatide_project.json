@@ -1,0 +1,17 @@
+{
+	"version": "2.6",
+	"projectName": "COMBINE",
+	"projectType": "pure",
+	"corePath": "d:\\IotProjects\\Luatools\\resource\\618_lua_lod\\core_V1106\\LuatOS-SoC_V1106_EC618.soc",
+	"libPath": "C:\\Users\\HOME\\AppData\\Roaming\\LuatIDE\\LuatideLib\\Air72XUX_LIB\\V2.4.3\\lib",
+	"moduleModel": "air72XUX/air82XUX",
+	"appFile": [
+		"libnet.lua",
+		"luatide_project.json",
+		"main.lua",
+		"sysplus.lua"
+	],
+	"modulePort": "",
+	"ignore": [],
+	"simulatorRun": "disable"
+}

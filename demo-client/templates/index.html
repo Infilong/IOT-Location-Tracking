@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sensor Data</title>
+</head>
+<body>
+
+  {% for table in tables %}
+    <h2>Location And Signal Data</h2>
+    {{ table|safe }}
+  {% endfor %}
+
+</body>
+</html>
