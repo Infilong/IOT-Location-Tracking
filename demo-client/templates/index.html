@@ -1,14 +1,81 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Sensor Data</title>
-</head>
-<body>
+  <head>
+    <title>Sensor Data</title>
+    <style>
+      /* Add your CSS styles here */
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      th,
+      td {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+      }
+      tr:nth-child(even) {
+        background-color: #f2f2f2;
+      }
+      th {
+        background-color: #4caf50;
+        color: white;
+      }
+      .save-button {
+        background-color: #ebaf09;
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        border-radius: 4px;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+      }
+    </style>
+  </head>
 
-  {% for table in tables %}
+  <body id="main">
+    {% for table in tables %}
     <h2>Location And Signal Data</h2>
-    {{ table|safe }}
-  {% endfor %}
+    {{ table|safe }} {% endfor %}
 
-</body>
+    <!-- Button to save the table as a CSV file -->
+    <button class="save-button" onclick="exportTableToCSV('sensor_data.csv')">
+      Save Table
+    </button>
+
+    <script>
+      // Refresh page every 10 seconds
+      setInterval(function () {
+        location.reload();
+      }, 10000);
+
+      // Function to export the table data to a CSV file
+      function exportTableToCSV(filename) {
+        var csv = [];
+        var rows = document.querySelectorAll("table tr");
+        for (var i = 0; i < rows.length; i++) {
+          var row = [],
+            cols = rows[i].querySelectorAll("td, th");
+          for (var j = 0; j < cols.length; j++) {
+            row.push(cols[j].innerText);
+          }
+          csv.push(row.join(","));
+        }
+
+        // Download the CSV file
+        var csvContent = "data:text/csv;charset=utf-8," + csv.join("\n");
+        var encodedUri = encodeURI(csvContent);
+        var link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+      }
+    </script>
+  </body>
 </html>

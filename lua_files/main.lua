@@ -14,9 +14,9 @@ _G.sysplus = require("sysplus")
 -- Air780E的AT固件默认会为开机键防抖, 导致部分用户刷机很麻烦
 if rtos.bsp() == "EC618" and pm and pm.PWK_MODE then pm.power(pm.PWK_MODE, false) end
 
-local mqttc = mqtt.create(nil, "broker.emqx.io", 1883) -- mqtt客户端创建
 local gps_uart_id = 2
-local url = "http://download.openluat.com/9501-xingli/HXXT_GPS_BDS_AGNSS_DATA.dat"
+local url =
+    "http://download.openluat.com/9501-xingli/HXXT_GPS_BDS_AGNSS_DATA.dat"
 
 -- libgnss库初始化
 libgnss.clear() -- 清空数据,兼初始化
@@ -117,7 +117,7 @@ sys.taskInit(function()
     local nmea_topic = "/gnss/" .. mobile.imei() .. "/up/nmea"
     log.info("GPS", "start")
     pm.power(pm.GPS, true)
-    -- sys.publish("signal", mobile.rsrp())
+    -- sys.publish("signal", mobile.csq())
     libgnss.on("raw",
                function(data) sys.publish("uplink", nmea_topic, data, 1) end)
     -- 调试日志,可选
@@ -141,7 +141,7 @@ sys.taskInit(function()
     libgnss.bind(gps_uart_id)
     log.debug("提醒",
               "室内无GNSS信号,定位不会成功, 要到空旷的室外,起码要看得到天空")
-    log.info("rsrp", mobile.rsrp())
+    log.info("csq", mobile.csq())
     exec_agnss()
 end)
 
@@ -164,9 +164,14 @@ end)
 
 -- mqtt 上传任务
 sys.taskInit(function()
-    -- sys.waitUntil("IP_READY", 15000)
+    -- -- sys.waitUntil("IP_READY", 15000)
+    mqttc = mqtt.create(nil, "broker.emqx.io", 1883) -- mqtt客户端创建
     mqttc:auth(mobile.imei(), mobile.imei(), mobile.muid()) -- mqtt三元组配置
     log.info("mqtt", mobile.imei(), mobile.imei(), mobile.muid())
+
+    --If your broker has enabled user authentication, you can input your Username and Password information into the configuration item.
+    -- mqttc:auth(client_id, user_name, password)
+
     mqttc:keepalive(30) -- 默认值240s
     mqttc:autoreconn(true, 3000) -- 自动重连机制
 
@@ -197,10 +202,27 @@ sys.taskInit(function()
         end
     end)
 
-    -- 发起连接之后，mqtt库会自动维护链接，若连接断开，默认会自动重连
-    mqttc:connect()
-    sys.waitUntil("mqtt_conack")
-    log.info("mqtt连接成功")
+    if mqttc:connect() == false then
+        local retry_interval = 5000 -- retry interval in milliseconds
+        local max_retries = 10 -- maximum number of retries
+        local retry_count = 0 -- current retry count
+
+        log.error("mqtt", "Failed to connect:", err)
+        retry_count = retry_count + 1
+        if retry_count >= max_retries then
+            log.error("mqtt", "Exceeded maximum number of retries, giving up.")
+            mqttc:close()
+        end
+        log.info("mqtt", "Retrying in", retry_interval, "ms...")
+        sys.wait(retry_interval)
+    else
+        sys.waitUntil("mqtt_conack")
+        log.info("mqtt", "连接成功")
+        while true do
+            sys.wait(5000)
+        end
+    end
+
     mqttc:close()
 end)
 
@@ -214,19 +236,26 @@ sys.taskInit(function()
             log.info("mqtt", "publish", "topic", topic)
 
             if mqttc:ready() then
-                mqttc:publish(topic, data .. "$rsrp" .. mobile.rsrp(), 0)
-
-
-                -- sys.wait(5 * 60000)
-                pm.request(pm.HIB)
-                pm.dtimerStart(0, 10000)
+                mqttc:publish(topic, data .. "$csq" .. mobile.csq(), 0)
+                
             else
                 log.info("mqtt", "not ready, insert into buff")
                 if #msgs > 60 then table.remove(msgs, 1) end
                 table.insert(msgs,
-                             {topic = topic, data = data, rsrp = mobile.rsrp()})
+                             {topic = topic, data = data, csq = mobile.csq()})
             end
         end
+
+        -- https://wiki.luatos.com/api/pm.html?highlight=pm#pm-power-id-onoff
+        log.info("pm", "Sleep 10s")
+        pm.request(pm.HIB)
+
+        -- pm.dtimerStart(0, 10000)
+        sys.wait(10000)
+        log.info("pm", "Entered sleep 10s")
+        
+        pm.request(pm.IDLE)
+        log.info("pm", "Restarted")
     end
 end)
 
@@ -235,7 +264,7 @@ sys.taskInit(function()
     while 1 do
         local vbat = adc.get(adc.CH_VBAT)
         log.info("vbat", vbat)
-        log.info("rsrp", mobile.rsrp())
+        log.info("csq", mobile.csq())
         if vbat < 3400 then
             gpio.set(LED_VBAT, 1)
             sys.wait(100)
