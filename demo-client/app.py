@@ -1,10 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_mqtt import Mqtt
+from flask_socketio import SocketIO, emit
 import pandas as pd
 import time
 
-df = pd.DataFrame(columns=['Timestamp', 'Latitude', 'Longitude', 'csq'])
-# df.loc[0] = [pd.Timestamp.now(), 'Sample data']
+df = pd.DataFrame(columns=['Line', 'Timestamp', 'Latitude', 'Longitude', 'csq'])
 
 app = Flask(__name__, template_folder='templates')
 
@@ -19,6 +19,7 @@ app.config['MQTT_TLS_ENABLED'] = False  # If your broker supports TLS, set it Tr
 app.topic = "default"
 
 mqtt_client = Mqtt(app)
+socketio = SocketIO(app)  # Initialize SocketIO with the app
 
 @mqtt_client.on_connect()
 def handle_connect(client, userdata, flags, rc):
@@ -63,13 +64,24 @@ def handle_mqtt_message(client, userdata, message):
           csq_with_description = "{:2d}(Signal Strong)".format(csq)
 
   timestamp_now = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
-  df.loc[len(df.index)] = [timestamp_now, latitude, longitude, csq_with_description]
+  df.loc[len(df.index)] = [len(df.index), timestamp_now, latitude, longitude, csq_with_description]
+  
+  # Emit the new data to the connected clients via WebSocket
+  socketio.emit('new_data', df.to_dict(orient='records'))
+  print("EMITING DATA")
 
 @app.route('/topic')
 def user_topic():
   print(df)
-  html = df.to_html(classes='data')  
-  return render_template('topic.html', tables=[html])
+  # html = df.to_html(classes='data')  
+  # return render_template('topic.html', tables=[html])
+
+  # Convert the DataFrame to a list of dictionaries
+  # Check if the DataFrame is empty
+  
+  table_data = df.to_dict(orient='records')
+  return render_template('topic.html', tables=[table_data])  # Pass the list of dictionaries to the template
+
 
 @app.route('/subscribe', methods=['GET', 'POST'])
 def subscription():
@@ -96,9 +108,27 @@ def subscription():
 
     mqtt_client.subscribe(app.topic)
     print("Subscribed new topic!")
+    
+    # Check if df is empty
+    if df.empty:
+        return redirect(url_for('loading_page'))
+  
     return redirect(url_for('user_topic'))
   else:
     return render_template('subscribe.html')
+
+@app.route('/loading')
+def loading_page():
+    return render_template('loading.html')
+  
+@socketio.on('connect')
+def on_connect():
+    print('Client connected')
+    
+@socketio.on('update table')
+def update_table():
+    # Send the current data to the connected client when WebSocket connection is established
+    emit('new_data', df.to_dict(orient='records'))
 
 if __name__ == '__main__': 
    app.run(host='127.0.0.1', port=5000)

@@ -39,10 +39,26 @@
   </head>
 
   <body id="main">
-    {% for table in tables %}
     <h2>Location And Signal Data</h2>
+    {% for table in tables %}
     <table id="data-table">
-      {{ table|safe }}
+      <thead>
+        <tr>
+          {% for key in table[0].keys() %}
+          <th>{{ key }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for record in table %}
+        <tr>
+          {% for value in record.values() %}
+          <td>{{ value }}</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
     </table>
     {% endfor %}
 
@@ -51,29 +67,11 @@
       Save Table
     </button>
 
-    <script>
-      // Function to export the table data to a CSV file
-      function exportTableToCSV(filename) {
-        var csv = [];
-        var rows = document.querySelectorAll("table tr");
-        for (var i = 0; i < rows.length; i++) {
-          var row = [],
-            cols = rows[i].querySelectorAll("td, th");
-          for (var j = 0; j < cols.length; j++) {
-            row.push(cols[j].innerText);
-          }
-          csv.push(row.join(","));
-        }
+    <!-- Add the socket.js script from the static folder -->
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='socket.js') }}"></script>
 
-        // Download the CSV file
-        var csvContent = "data:text/csv;charset=utf-8," + csv.join("\n");
-        var encodedUri = encodeURI(csvContent);
-        var link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", filename);
-        document.body.appendChild(link);
-        link.click();
-      }
-    </script>
+    <!-- Add the save_data.js script from the static folder -->
+    <script src="{{ url_for('static', filename='save_data.js') }}"></script>
   </body>
 </html>
