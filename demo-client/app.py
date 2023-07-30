@@ -1,23 +1,22 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 from flask_mqtt import Mqtt
 import pandas as pd
+import time
 
 df = pd.DataFrame(columns=['Timestamp', 'Latitude', 'Longitude', 'csq'])
 # df.loc[0] = [pd.Timestamp.now(), 'Sample data']
 
 app = Flask(__name__, template_folder='templates')
 
-app.config['MQTT_BROKER_URL'] = 'broker.emqx.io'
-app.config['MQTT_BROKER_PORT'] = 1883
-
 # If your broker has enabled user authentication, you can input your Username and Password information into the configuration item.
 # https://mqttx.app/docs/get-started#client-related-information
+
 app.config['MQTT_USERNAME'] = ''  # Set this item when you need to verify username and password
 app.config['MQTT_PASSWORD'] = ''  # Set this item when you need to verify username and password
 
 app.config['MQTT_KEEPALIVE'] = 5  # Set KeepAlive time in seconds
 app.config['MQTT_TLS_ENABLED'] = False  # If your broker supports TLS, set it True
-app.topic = "/gnss/864269067627410/up/nmea"
+app.topic = "default"
 
 mqtt_client = Mqtt(app)
 
@@ -31,6 +30,7 @@ def handle_connect(client, userdata, flags, rc):
 
 @mqtt_client.on_message()  
 def handle_mqtt_message(client, userdata, message):
+  print("Received MQTT message:", message.payload)
   latitude = None
   longitude = None
   csq = None
@@ -51,19 +51,54 @@ def handle_mqtt_message(client, userdata, message):
       if sentence[0].startswith("$csq"):
         csq_data = sentence[0]
         csq_data = csq_data[4:]
-        print("csq_data: " + csq_data)
         csq = int(csq_data)
+        csq_with_description = ""
+        if csq <= 10:
+          csq_with_description = "{:2d}(Signal Weak)".format(csq)
+
+        elif csq > 10 and csq <= 20:
+          csq_with_description = "{:2d}(Signal Medium)".format(csq)
+          
+        else:
+          csq_with_description = "{:2d}(Signal Strong)".format(csq)
 
   timestamp_now = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
-  df.loc[len(df.index)] = [timestamp_now, latitude, longitude, csq]
-  
-@app.route('/')
-def index():
-  titles = ['Timestamp', 'Latitude', 'Longitude', 'rsrp']
+  df.loc[len(df.index)] = [timestamp_now, latitude, longitude, csq_with_description]
+
+@app.route('/topic')
+def user_topic():
+  print(df)
   html = df.to_html(classes='data')  
-  return render_template('index.html', tables=[html], titles=titles)
+  return render_template('topic.html', tables=[html])
+
+@app.route('/subscribe', methods=['GET', 'POST'])
+def subscription():
+  if request.method == 'POST':
+    mqtt_client.unsubscribe(app.topic)
+    print("Unsubscribe old topic!")
+
+    # Debug: Print the form data
+    print(request.form)
+
+    # Extract MQTT broker URL and port
+    broker_url = request.form['mqtt-broker-url']
+    broker_port = int(request.form['mqtt-broker-port'])
+    app.topic = "/gnss/" + request.form['topic'] + "/up/nmea"
+    
+    # Debug: Print the extracted values
+    print("MQTT Broker URL:", broker_url)
+    print("MQTT Broker Port:", broker_port)
+    print("topic:" + app.topic)
+
+    # Initialize and start the MQTT client
+    mqtt_client.init_app(app)
+    mqtt_client.client.connect(host=broker_url,port=broker_port)
+
+    mqtt_client.subscribe(app.topic)
+    print("Subscribed new topic!")
+    return redirect(url_for('user_topic'))
+  else:
+    return render_template('subscribe.html')
 
 if __name__ == '__main__': 
    app.run(host='127.0.0.1', port=5000)
-
-

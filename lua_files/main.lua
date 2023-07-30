@@ -1,7 +1,7 @@
 -- LuaTools需要PROJECT和VERSION这两个信息
 PROJECT = "gnsstest"
 VERSION = "1.0.1"
-PRODUCT_KEY = "864269067627410"
+
 --[[
 本demo需要很多流量!!!
 注意: 室内无信号!! 无法定位!!!

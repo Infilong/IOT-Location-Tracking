@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Subscribe</title>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f0f0f0;
+      }
+      #topic-form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 400px; /* Adjust the width to make the box bigger */
+        padding: 30px; /* Increase the padding for more space inside the box */
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        background-color: #fff;
+      }
+      #topic-form label,
+      #topic-form input {
+        margin-bottom: 10px;
+        width: 100%; /* Set the input boxes to have the same width as the form */
+        box-sizing: border-box; /* Include padding and border in the total width */
+      }
+      #topic-form label {
+        font-weight: bold;
+      }
+      #topic-form input {
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      #topic-form button {
+        padding: 10px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%; /* Set the button to have the same width as the form */
+      }
+      #topic-form h1 {
+        white-space: nowrap; /* Prevent heading from wrapping to the next line */
+        margin-bottom: 20px; /* Add some spacing between heading and form */
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Add a form to enter the topic -->
+    <div id="topic-form">
+      <h1>Subscribe to MQTT Topic</h1>
+      <form action="/subscribe" method="post">
+        <label for="mqtt-broker-url">MQTT Broker Address:</label>
+        <input
+          type="text"
+          id="mqtt-broker-url"
+          name="mqtt-broker-url"
+          required
+        />
+
+        <label for="mqtt-broker-port">MQTT Broker Port:</label>
+        <input
+          type="number"
+          id="mqtt-broker-port"
+          name="mqtt-broker-port"
+          required
+        />
+
+        <label for="topic">Topic:</label>
+        <input type="text" id="topic" name="topic" required />
+
+        <button type="submit">Subscribe</button>
+      </form>
+    </div>
+  </body>
+</html>

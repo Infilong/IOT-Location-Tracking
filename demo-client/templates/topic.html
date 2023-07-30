@@ -41,7 +41,10 @@
   <body id="main">
     {% for table in tables %}
     <h2>Location And Signal Data</h2>
-    {{ table|safe }} {% endfor %}
+    <table id="data-table">
+      {{ table|safe }}
+    </table>
+    {% endfor %}
 
     <!-- Button to save the table as a CSV file -->
     <button class="save-button" onclick="exportTableToCSV('sensor_data.csv')">
@@ -49,11 +52,6 @@
     </button>
 
     <script>
-      // Refresh page every 10 seconds
-      setInterval(function () {
-        location.reload();
-      }, 10000);
-
       // Function to export the table data to a CSV file
       function exportTableToCSV(filename) {
         var csv = [];
