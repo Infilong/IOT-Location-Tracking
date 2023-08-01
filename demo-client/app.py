@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_mqtt import Mqtt
 from flask_socketio import SocketIO, emit
 import pandas as pd
@@ -63,7 +63,7 @@ def handle_mqtt_message(client, userdata, message):
           csq_with_description = "{:2d}(Signal Strong)".format(csq)
 
   timestamp_now = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
-  df.loc[len(df.index)] = [len(df.index), timestamp_now, latitude, longitude, csq_with_description]
+  df.loc[len(df.index)] = [len(df.index)+1, timestamp_now, latitude, longitude, csq_with_description]
   
   # Every time the 'new_data' event is emitted and received by the client-side JavaScript(loading.js), 
   # the page will be redirected back to /topic, causing the template to be re-rendered with the updated GNSS data, 
@@ -87,11 +87,14 @@ def subscription():
     # Debug: Print the form data
     print(request.form)
 
-    # Extract MQTT broker URL and port
+    # Extract MQTT broker URL, port and topic, validate the broker_port input as an integer
     broker_url = request.form['mqtt-broker-url']
-    broker_port = int(request.form['mqtt-broker-port'])
     app.topic = "/gnss/" + request.form['topic'] + "/up/nmea"
-    
+    try:
+        broker_port = int(request.form['mqtt-broker-port'])
+    except ValueError:
+        flash("Invalid broker port. Please enter a valid integer for the port.")
+      
     # Debug: Print the extracted values
     print("MQTT Broker URL:", broker_url)
     print("MQTT Broker Port:", broker_port)
@@ -99,7 +102,11 @@ def subscription():
 
     # Initialize and start the MQTT client
     mqtt_client.init_app(app)
-    mqtt_client.client.connect(host=broker_url,port=broker_port)
+    connected = mqtt_client.client.connect(host=broker_url, port=broker_port)
+
+    if connected != 0:
+        flash("Unable to connect to the MQTT broker. Please check the broker address, port and topic.")
+        return render_template('subscribe.html')
 
     mqtt_client.subscribe(app.topic)
     print("Subscribed new topic!")
