@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, redirect, url_for
 from flask_mqtt import Mqtt
 from flask_socketio import SocketIO, emit
 import pandas as pd
-import time
 
 df = pd.DataFrame(columns=['Line', 'Timestamp', 'Latitude', 'Longitude', 'csq'])
 
@@ -66,22 +65,18 @@ def handle_mqtt_message(client, userdata, message):
   timestamp_now = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
   df.loc[len(df.index)] = [len(df.index), timestamp_now, latitude, longitude, csq_with_description]
   
-  # Emit the new data to the connected clients via WebSocket
+  # Every time the 'new_data' event is emitted and received by the client-side JavaScript(loading.js), 
+  # the page will be redirected back to /topic, causing the template to be re-rendered with the updated GNSS data, 
+  # providing real-time updates to the user.
   socketio.emit('new_data', df.to_dict(orient='records'))
   print("EMITING DATA")
 
 @app.route('/topic')
 def user_topic():
   print(df)
-  # html = df.to_html(classes='data')  
-  # return render_template('topic.html', tables=[html])
-
-  # Convert the DataFrame to a list of dictionaries
-  # Check if the DataFrame is empty
-  
+  # Pass the list of dictionaries to template topic.html
   table_data = df.to_dict(orient='records')
-  return render_template('topic.html', tables=[table_data])  # Pass the list of dictionaries to the template
-
+  return render_template('topic.html', tables=[table_data])  
 
 @app.route('/subscribe', methods=['GET', 'POST'])
 def subscription():
@@ -120,15 +115,11 @@ def subscription():
 @app.route('/loading')
 def loading_page():
     return render_template('loading.html')
-  
+
+# The event name 'connect' is predefined by SocketIO itself.
 @socketio.on('connect')
 def on_connect():
     print('Client connected')
-    
-@socketio.on('update table')
-def update_table():
-    # Send the current data to the connected client when WebSocket connection is established
-    emit('new_data', df.to_dict(orient='records'))
 
 if __name__ == '__main__': 
    app.run(host='127.0.0.1', port=5000)

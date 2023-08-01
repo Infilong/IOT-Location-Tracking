@@ -15,20 +15,23 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        width: 400px; /* Adjust the width to make the box bigger */
-        padding: 30px; /* Increase the padding for more space inside the box */
+        width: 400px;
+        padding: 30px;
         border-radius: 5px;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
         background-color: #fff;
       }
       #topic-form label,
-      #topic-form input {
+      #topic-form input,
+      #topic-form button {
         margin-bottom: 10px;
-        width: 100%; /* Set the input boxes to have the same width as the form */
-        box-sizing: border-box; /* Include padding and border in the total width */
+        width: 100%;
+        box-sizing: border-box;
+        display: block;
       }
       #topic-form label {
         font-weight: bold;
+        white-space: nowrap;
       }
       #topic-form input {
         padding: 8px;
@@ -42,11 +45,17 @@
         border: none;
         border-radius: 4px;
         cursor: pointer;
-        width: 100%; /* Set the button to have the same width as the form */
       }
       #topic-form h1 {
-        white-space: nowrap; /* Prevent heading from wrapping to the next line */
-        margin-bottom: 20px; /* Add some spacing between heading and form */
+        white-space: nowrap;
+        margin-bottom: 20px;
+      }
+      #credentials-container {
+        display: flex;
+        align-items: center;
+      }
+      #credentials-container label {
+        margin-right: 10px;
       }
     </style>
   </head>
@@ -56,26 +65,33 @@
       <h1>Subscribe to MQTT Topic</h1>
       <form action="/subscribe" method="post">
         <label for="mqtt-broker-url">MQTT Broker Address:</label>
-        <input
-          type="text"
-          id="mqtt-broker-url"
-          name="mqtt-broker-url"
-          required
-        />
+        <input type="text" id="mqtt-broker-url" name="mqtt-broker-url" required />
 
         <label for="mqtt-broker-port">MQTT Broker Port:</label>
-        <input
-          type="number"
-          id="mqtt-broker-port"
-          name="mqtt-broker-port"
-          required
-        />
+        <input type="number" id="mqtt-broker-port" name="mqtt-broker-port" required />
 
         <label for="topic">Topic:</label>
         <input type="text" id="topic" name="topic" required />
 
+        <!-- Tick box for showing username and password fields -->
+        <div id="credentials-container">
+          <label for="show-credentials">Username and Password:</label>
+          <input type="checkbox" id="show-credentials" name="show-credentials" />
+        </div>
+
+        <!-- Username and password input fields (initially hidden) -->
+        <div id="credentials-fields" style="display: none">
+          <label for="username">Username:</label>
+          <input type="text" id="username" name="username" />
+
+          <label for="password">Password:</label>
+          <input type="password" id="password" name="password" />
+        </div>
+
         <button type="submit">Subscribe</button>
       </form>
     </div>
+
+    <script src="{{ url_for('static', filename='show_credentials.js') }}"></script>
   </body>
 </html>
